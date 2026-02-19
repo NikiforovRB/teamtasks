@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import logoUrl from '../../assets/logo.svg'
 
 export function LoginPage() {
   const { signInWithPassword } = useAuth()
@@ -34,12 +35,11 @@ export function LoginPage() {
 
   return (
     <div className="min-h-full bg-black text-white">
-      <div className="mx-auto flex min-h-full max-w-md flex-col justify-center px-6 py-12">
-        <div className="rounded-2xl p-8">
-          <div className="text-sm text-white/60">Task tracker</div>
-          <h1 className="mt-2 text-2xl tracking-tight">Вход</h1>
+      <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center px-6 py-12">
+        <div className="flex flex-col items-center rounded-2xl p-8">
+          <img src={logoUrl} alt="Task tracker" className="h-8 w-auto max-w-[200px]" />
 
-          <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+          <form className="mt-6 w-full space-y-4" onSubmit={onSubmit}>
             <label className="block">
               <div className="text-sm text-white/70">Email</div>
               <input
@@ -81,7 +81,7 @@ export function LoginPage() {
         </div>
 
         <div className="mt-6 text-center text-xs text-white/40">
-          Доступ только для сотрудников с созданным аккаунтом Supabase.
+          Доступ только для сотрудников.
         </div>
       </div>
     </div>

@@ -1,0 +1,7 @@
+{
+  "name": "Task tracker",
+  "short_name": "Task tracker",
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "display": "standalone"
+}

@@ -117,14 +117,16 @@ export function DayColumn({
         onOpenTask={onOpenTask}
       />
 
-      <TaskList
-        containerId={`c:${toIsoDate(date)}:completed`}
-        title="Выполнено"
-        tasks={completed}
-        activeId={activeId}
-        overId={overId}
-        onOpenTask={onOpenTask}
-      />
+      <div className={planned.length === 0 ? '-mt-3' : undefined}>
+        <TaskList
+          containerId={`c:${toIsoDate(date)}:completed`}
+          title="Выполнено"
+          tasks={completed}
+          activeId={activeId}
+          overId={overId}
+          onOpenTask={onOpenTask}
+        />
+      </div>
 
       {completed.length > 0 ? (
         <div className="mt-auto px-3 py-2 text-xs text-white/70">
