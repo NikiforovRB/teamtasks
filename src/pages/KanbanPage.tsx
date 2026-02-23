@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { supabase } from '../services/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import { useApp } from '../contexts/AppContext'
 import { WeekNavigator } from '../components/Kanban/WeekNavigator'
 import { WeekView } from '../components/Kanban/WeekView'
@@ -37,6 +38,7 @@ function pickJoinedName(joined: unknown): string | null {
 }
 
 export function KanbanPage() {
+  const { user } = useAuth()
   const { selectedEmployeeId, employees } = useApp()
   const selectedEmployeeName = useMemo(
     () => (selectedEmployeeId ? employees.find((e) => e.id === selectedEmployeeId)?.name ?? null : null),
@@ -55,6 +57,37 @@ export function KanbanPage() {
     | null
   >(null)
   const [showWeekend, setShowWeekend] = useState(true)
+
+  useEffect(() => {
+    if (!user?.id) return
+    let mounted = true
+    supabase
+      .from('user_ui_preferences')
+      .select('show_weekend')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!mounted) return
+        if (!error && data) setShowWeekend((data as { show_weekend: boolean }).show_weekend)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [user?.id])
+
+  async function toggleShowWeekend() {
+    const next = !showWeekend
+    setShowWeekend(next)
+    if (!user?.id) return
+    await supabase.from('user_ui_preferences').upsert(
+      {
+        user_id: user.id,
+        show_weekend: next,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' },
+    )
+  }
 
   const weekStartParam = searchParams.get('week')
   const anchorDate = useMemo(() => {
@@ -295,7 +328,7 @@ export function KanbanPage() {
         onNextWeek={() => setWeekStartParam(addWeeks(weekStart, 1))}
         selectedEmployeeName={selectedEmployeeName}
         showWeekend={showWeekend}
-        onToggleWeekend={() => setShowWeekend((v) => !v)}
+        onToggleWeekend={() => void toggleShowWeekend()}
       />
 
       {errorText ? (
