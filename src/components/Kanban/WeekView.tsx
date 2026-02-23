@@ -6,6 +6,7 @@ import { toIsoDate } from '../../utils/dateUtils'
 export function WeekView({
   weekStart,
   tasks,
+  showWeekend = true,
   onAddTask,
   onOpenTask,
   activeId,
@@ -13,6 +14,7 @@ export function WeekView({
 }: {
   weekStart: Date
   tasks: TaskCardModel[]
+  showWeekend?: boolean
   onAddTask: (date: Date) => void
   onOpenTask: (taskId: string) => void
   activeId: string | null
@@ -26,9 +28,11 @@ export function WeekView({
     else byDate.set(key, [t])
   }
 
+  const dayCount = showWeekend ? 7 : 5
+
   return (
     <div className="flex gap-4 pb-3">
-      {Array.from({ length: 7 }).map((_, i) => {
+      {Array.from({ length: dayCount }).map((_, i) => {
         const d = addDays(weekStart, i)
         const iso = toIsoDate(d)
         return (

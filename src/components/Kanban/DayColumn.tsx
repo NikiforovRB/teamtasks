@@ -92,7 +92,7 @@ export function DayColumn({
 
   return (
     <div className="flex min-w-[320px] flex-col gap-3 rounded-xl p-3">
-      <div className="flex flex-col">
+      <div className="sticky top-0 z-10 flex flex-col rounded-xl bg-black pb-3 pt-1">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm">{formatDayHeader(date)}</div>
           <button

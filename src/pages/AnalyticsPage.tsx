@@ -1,6 +1,7 @@
 import { addDays } from 'date-fns'
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { supabase } from '../services/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import { useApp } from '../contexts/AppContext'
 import { formatMinutes } from '../utils/timeUtils'
 import {
@@ -26,16 +27,63 @@ function pickJoinedName(joined: AnalyticsRow['projects'] | AnalyticsRow['employe
   return joined.name ?? null
 }
 
+const todayIso = toIsoDate(new Date())
+const defaultStart = toIsoDate(addDays(new Date(), -30))
+
 export function AnalyticsPage() {
+  const { user } = useAuth()
   const { projects, employees } = useApp()
-  const today = useMemo(() => new Date(), [])
-  const [startDate, setStartDate] = useState(() => toIsoDate(addDays(today, -30)))
-  const [endDate, setEndDate] = useState(() => toIsoDate(today))
+  const [startDate, setStartDate] = useState(defaultStart)
+  const [endDate, setEndDate] = useState(todayIso)
   const [filterProjectId, setFilterProjectId] = useState<string | null>(null)
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null)
   const [dateSortOrder, setDateSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
   const startInputRef = useRef<HTMLInputElement>(null)
   const endInputRef = useRef<HTMLInputElement>(null)
+
+  const savePreferences = useCallback(
+    async (start: string, end: string, projectId: string | null, employeeId: string | null) => {
+      if (!user?.id) return
+      await supabase.from('user_analytics_preferences').upsert(
+        {
+          user_id: user.id,
+          start_date: start,
+          end_date: end,
+          project_id: projectId,
+          employee_id: employeeId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      )
+    },
+    [user?.id],
+  )
+
+  useEffect(() => {
+    if (!user?.id) return
+    let mounted = true
+    supabase
+      .from('user_analytics_preferences')
+      .select('start_date, end_date, project_id, employee_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!mounted || error || !data) {
+          setPreferencesLoaded(true)
+          return
+        }
+        const row = data as { start_date: string; end_date: string; project_id: string | null; employee_id: string | null }
+        setStartDate(row.start_date)
+        setEndDate(row.end_date)
+        setFilterProjectId(row.project_id)
+        setFilterEmployeeId(row.employee_id)
+        setPreferencesLoaded(true)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [user?.id])
 
   const [rows, setRows] = useState<
     Array<{
@@ -171,7 +219,11 @@ export function AnalyticsPage() {
               ref={startInputRef}
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+              const v = e.target.value
+              setStartDate(v)
+              if (preferencesLoaded && user?.id) void savePreferences(v, endDate, filterProjectId, filterEmployeeId)
+            }}
               className="absolute h-0 w-0 opacity-0 pointer-events-none"
               aria-hidden
             />
@@ -189,7 +241,11 @@ export function AnalyticsPage() {
               ref={endInputRef}
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+              const v = e.target.value
+              setEndDate(v)
+              if (preferencesLoaded && user?.id) void savePreferences(startDate, v, filterProjectId, filterEmployeeId)
+            }}
               className="absolute h-0 w-0 opacity-0 pointer-events-none"
               aria-hidden
             />
@@ -205,7 +261,11 @@ export function AnalyticsPage() {
             <div className="text-xs text-white/50">Проект</div>
             <select
               value={filterProjectId ?? ''}
-              onChange={(e) => setFilterProjectId(e.target.value || null)}
+              onChange={(e) => {
+              const v = e.target.value || null
+              setFilterProjectId(v)
+              if (preferencesLoaded && user?.id) void savePreferences(startDate, endDate, v, filterEmployeeId)
+            }}
               className="mt-1 rounded-xl px-3 py-2 text-sm text-white outline-none bg-[#1a1a1a] min-w-[160px]"
             >
               <option value="">Все проекты</option>
@@ -220,7 +280,11 @@ export function AnalyticsPage() {
             <div className="text-xs text-white/50">Сотрудник</div>
             <select
               value={filterEmployeeId ?? ''}
-              onChange={(e) => setFilterEmployeeId(e.target.value || null)}
+              onChange={(e) => {
+              const v = e.target.value || null
+              setFilterEmployeeId(v)
+              if (preferencesLoaded && user?.id) void savePreferences(startDate, endDate, filterProjectId, v)
+            }}
               className="mt-1 rounded-xl px-3 py-2 text-sm text-white outline-none bg-[#1a1a1a] min-w-[160px]"
             >
               <option value="">Все сотрудники</option>

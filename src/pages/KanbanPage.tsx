@@ -54,6 +54,7 @@ export function KanbanPage() {
     | { type: 'edit'; taskId: string }
     | null
   >(null)
+  const [showWeekend, setShowWeekend] = useState(true)
 
   const weekStartParam = searchParams.get('week')
   const anchorDate = useMemo(() => {
@@ -293,6 +294,8 @@ export function KanbanPage() {
         onPrevWeek={() => setWeekStartParam(addWeeks(weekStart, -1))}
         onNextWeek={() => setWeekStartParam(addWeeks(weekStart, 1))}
         selectedEmployeeName={selectedEmployeeName}
+        showWeekend={showWeekend}
+        onToggleWeekend={() => setShowWeekend((v) => !v)}
       />
 
       {errorText ? (
@@ -306,7 +309,7 @@ export function KanbanPage() {
           Загрузка задач…
         </div>
       ) : (
-        <div className="mt-4 min-h-0 flex-1 overflow-x-auto">
+        <div className="mt-4 min-h-0 flex-1 overflow-auto">
           <DndContext
             sensors={sensors}
             collisionDetection={pointerWithin}
@@ -317,6 +320,7 @@ export function KanbanPage() {
             <WeekView
               weekStart={weekStart}
               tasks={tasks}
+              showWeekend={showWeekend}
               activeId={activeId}
               overId={overId}
               onAddTask={(d) => {
