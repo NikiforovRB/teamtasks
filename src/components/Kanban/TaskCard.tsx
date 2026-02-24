@@ -92,7 +92,7 @@ export function TaskCard({
         />
       </div>
 
-      <div className="mt-2 text-sm leading-snug">
+      <div className="mt-2 max-w-[270px] break-words whitespace-normal text-sm leading-snug">
         {task.short_description}
       </div>
 
