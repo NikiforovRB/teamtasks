@@ -36,6 +36,7 @@ export function AnalyticsPage() {
   const [startDate, setStartDate] = useState(defaultStart)
   const [endDate, setEndDate] = useState(todayIso)
   const [filterProjectId, setFilterProjectId] = useState<string | null>(null)
+  const [filterOnlyNoProject, setFilterOnlyNoProject] = useState(false)
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null)
   const [dateSortOrder, setDateSortOrder] = useState<'asc' | 'desc'>('desc')
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
@@ -104,7 +105,11 @@ export function AnalyticsPage() {
 
   const filteredAndSortedRows = useMemo(() => {
     let list = rows.filter((r) => {
-      if (filterProjectId != null && r.projectId !== filterProjectId) return false
+      if (filterOnlyNoProject) {
+        if (r.projectId !== null) return false
+      } else if (filterProjectId != null) {
+        if (r.projectId !== filterProjectId) return false
+      }
       if (filterEmployeeId != null && r.employeeId !== filterEmployeeId) return false
       return true
     })
@@ -113,7 +118,7 @@ export function AnalyticsPage() {
       return dateSortOrder === 'asc' ? cmp : -cmp
     })
     return list
-  }, [rows, filterProjectId, filterEmployeeId, dateSortOrder])
+  }, [rows, filterProjectId, filterEmployeeId, dateSortOrder, filterOnlyNoProject])
 
   const totalMinutes = useMemo(
     () => filteredAndSortedRows.reduce((acc, r) => acc + r.timeSpentMinutes, 0),
@@ -283,15 +288,27 @@ export function AnalyticsPage() {
           <div className="block">
             <div className="text-xs text-white/50">Проект</div>
             <select
-              value={filterProjectId ?? ''}
+              value={(filterOnlyNoProject ? '__none__' : filterProjectId) ?? 'ALL'}
               onChange={(e) => {
-              const v = e.target.value || null
-              setFilterProjectId(v)
-              if (preferencesLoaded && user?.id) void savePreferences(startDate, endDate, v, filterEmployeeId)
+              const v = e.target.value
+              if (v === 'ALL') {
+                setFilterOnlyNoProject(false)
+                setFilterProjectId(null)
+                if (preferencesLoaded && user?.id) void savePreferences(startDate, endDate, null, filterEmployeeId)
+              } else if (v === '__none__') {
+                setFilterOnlyNoProject(true)
+                setFilterProjectId(null)
+                if (preferencesLoaded && user?.id) void savePreferences(startDate, endDate, null, filterEmployeeId)
+              } else {
+                setFilterOnlyNoProject(false)
+                setFilterProjectId(v)
+                if (preferencesLoaded && user?.id) void savePreferences(startDate, endDate, v, filterEmployeeId)
+              }
             }}
               className="mt-1 rounded-xl px-3 py-2 text-sm text-white outline-none bg-[#1a1a1a] min-w-[160px]"
             >
-              <option value="">Все проекты</option>
+              <option value="__none__">Проект не выбран</option>
+              <option value="ALL">Все проекты</option>
               {projectOptions.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
