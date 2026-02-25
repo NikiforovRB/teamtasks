@@ -7,7 +7,7 @@ export function MainLayout() {
     <AppProvider>
       <div className="flex h-full min-h-full bg-black text-white">
         <Sidebar />
-        <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

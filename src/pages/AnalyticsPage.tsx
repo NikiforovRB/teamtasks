@@ -120,6 +120,29 @@ export function AnalyticsPage() {
     [filteredAndSortedRows],
   )
 
+  const chartData = useMemo(() => {
+    const byProject = new Map<string | null, { name: string; minutes: number }>()
+    for (const r of filteredAndSortedRows) {
+      const key = r.projectId
+      const name = r.projectName?.trim() ? r.projectName : 'Без проекта'
+      const prev = byProject.get(key)
+      if (prev) {
+        prev.minutes += r.timeSpentMinutes
+      } else {
+        byProject.set(key, { name, minutes: r.timeSpentMinutes })
+      }
+    }
+    const list = Array.from(byProject.entries()).map(([id, { name, minutes }]) => ({
+      projectId: id,
+      projectName: name,
+      totalMinutes: minutes,
+    }))
+    list.sort((a, b) => b.totalMinutes - a.totalMinutes)
+    return list
+  }, [filteredAndSortedRows])
+
+  const maxChartMinutes = chartData[0]?.totalMinutes ?? 1
+
   useEffect(() => {
     let mounted = true
     setIsLoading(true)
@@ -305,11 +328,18 @@ export function AnalyticsPage() {
       ) : null}
 
       <div className="mt-4 overflow-hidden rounded-xl">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+        <div className="max-h-[min(864px,85vh)] overflow-auto">
+          <table className="min-w-full table-fixed text-left text-sm">
+            <colgroup>
+              <col style={{ width: '200px' }} />
+              <col style={{ width: '220px' }} />
+              <col />
+              <col />
+              <col style={{ width: '28%' }} />
+            </colgroup>
             <thead className="text-xs text-white/50">
               <tr className="border-b border-[#2f2f2f]">
-                <th className="px-4 py-3">
+                <th className="sticky top-0 z-10 border-b border-[#2f2f2f] bg-black px-4 py-3">
                   <button
                     type="button"
                     onClick={() => setDateSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
@@ -319,10 +349,10 @@ export function AnalyticsPage() {
                     Дата {dateSortOrder === 'desc' ? '↓' : '↑'}
                   </button>
                 </th>
-                <th className="px-4 py-3">Проект</th>
-                <th className="px-4 py-3">Сотрудник</th>
-                <th className="px-4 py-3">Затраченное время</th>
-                <th className="px-4 py-3">Короткое описание</th>
+                <th className="sticky top-0 z-10 border-b border-[#2f2f2f] bg-black px-4 py-3">Проект</th>
+                <th className="sticky top-0 z-10 border-b border-[#2f2f2f] bg-black px-4 py-3">Сотрудник</th>
+                <th className="sticky top-0 z-10 border-b border-[#2f2f2f] bg-black px-4 py-3">Затраченное время</th>
+                <th className="sticky top-0 z-10 border-b border-[#2f2f2f] bg-black px-4 py-3">Короткое описание</th>
               </tr>
             </thead>
             <tbody>
@@ -353,7 +383,9 @@ export function AnalyticsPage() {
                     <td className="px-4 py-3 text-white">
                       {formatMinutes(r.timeSpentMinutes)}
                     </td>
-                    <td className="px-4 py-3 text-white/80">{r.shortDescription}</td>
+                    <td className="max-w-[280px] truncate px-4 py-3 text-white/80" title={r.shortDescription}>
+                      {r.shortDescription}
+                    </td>
                   </tr>
                 ))
               )}
@@ -366,6 +398,33 @@ export function AnalyticsPage() {
           <span className="text-white">{formatMinutes(totalMinutes)}</span>
         </div>
       </div>
+
+      {chartData.length > 0 ? (
+        <div className="mt-8">
+          <h2 className="mb-4 text-sm text-white/70">Сравнение по проектам (суммарное время)</h2>
+          <div className="space-y-3">
+            {chartData.map((item) => {
+              const widthPct = maxChartMinutes > 0 ? (item.totalMinutes / maxChartMinutes) * 100 : 0
+              return (
+                <div key={item.projectId ?? 'null'} className="flex items-center gap-4">
+                  <span className="min-w-[140px] max-w-[200px] shrink-0 truncate text-sm text-white/70" title={item.projectName}>
+                    {item.projectName}
+                  </span>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <div
+                      className="h-8 rounded-[6px] bg-[#2f2f2f]"
+                      style={{ width: `${widthPct}%`, minWidth: item.totalMinutes > 0 ? '4px' : 0 }}
+                    />
+                    <span className="shrink-0 text-sm text-white/80">
+                      {formatMinutes(item.totalMinutes)}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
