@@ -4,6 +4,8 @@ import { formatWeekRange } from '../../utils/dateUtils'
 import calendarUrl from '../../assets/calendar.svg'
 import calendarNavUrl from '../../assets/calendar-nav.svg'
 
+type ProjectOption = { id: string; name: string }
+
 export function WeekNavigator({
   weekStart,
   weekEnd,
@@ -12,6 +14,9 @@ export function WeekNavigator({
   selectedEmployeeName,
   showWeekend,
   onToggleWeekend,
+  filterProjectId,
+  onFilterProjectChange,
+  projectOptions,
 }: {
   weekStart: Date
   weekEnd: Date
@@ -20,6 +25,9 @@ export function WeekNavigator({
   selectedEmployeeName?: string | null
   showWeekend?: boolean
   onToggleWeekend?: () => void
+  filterProjectId?: string | null
+  onFilterProjectChange?: (projectId: string | null) => void
+  projectOptions?: ProjectOption[]
 }) {
   const [calendarHover, setCalendarHover] = useState(false)
   return (
@@ -59,6 +67,23 @@ export function WeekNavigator({
             className="h-5 w-5"
           />
         </button>
+      ) : null}
+      {onFilterProjectChange && projectOptions ? (
+        <div className="ml-[50px] shrink-0">
+          <select
+            value={filterProjectId ?? ''}
+            onChange={(e) => onFilterProjectChange(e.target.value || null)}
+            className="h-10 rounded-xl border-0 bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none min-w-[160px]"
+            title="Фильтр по проекту"
+          >
+            <option value="">Все проекты</option>
+            {projectOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
       ) : null}
       {selectedEmployeeName ? (
         <span className="ml-auto truncate text-sm text-white/70" title={selectedEmployeeName}>

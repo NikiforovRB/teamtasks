@@ -39,7 +39,7 @@ function pickJoinedName(joined: unknown): string | null {
 
 export function KanbanPage() {
   const { user } = useAuth()
-  const { selectedEmployeeId, employees } = useApp()
+  const { selectedEmployeeId, employees, projects } = useApp()
   const selectedEmployeeName = useMemo(
     () => (selectedEmployeeId ? employees.find((e) => e.id === selectedEmployeeId)?.name ?? null : null),
     [selectedEmployeeId, employees],
@@ -57,6 +57,7 @@ export function KanbanPage() {
     | null
   >(null)
   const [showWeekend, setShowWeekend] = useState(true)
+  const [filterProjectId, setFilterProjectId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user?.id) return
@@ -319,6 +320,18 @@ export function KanbanPage() {
     })
   }
 
+  const projectOptions = useMemo(
+    () => projects.filter((p) => !p.is_hidden).map((p) => ({ id: p.id, name: p.name })),
+    [projects],
+  )
+  const filteredTasks = useMemo(
+    () =>
+      filterProjectId
+        ? tasks.filter((t) => t.project_id === filterProjectId)
+        : tasks,
+    [tasks, filterProjectId],
+  )
+
   return (
     <div className="flex h-full flex-col px-6 py-6">
       <WeekNavigator
@@ -329,6 +342,9 @@ export function KanbanPage() {
         selectedEmployeeName={selectedEmployeeName}
         showWeekend={showWeekend}
         onToggleWeekend={() => void toggleShowWeekend()}
+        filterProjectId={filterProjectId}
+        onFilterProjectChange={setFilterProjectId}
+        projectOptions={projectOptions}
       />
 
       {errorText ? (
@@ -352,7 +368,7 @@ export function KanbanPage() {
           >
             <WeekView
               weekStart={weekStart}
-              tasks={tasks}
+              tasks={filteredTasks}
               showWeekend={showWeekend}
               activeId={activeId}
               overId={overId}
