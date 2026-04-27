@@ -17,12 +17,14 @@ import type { Project } from '../types'
 function SortableProjectRow({
   project,
   showInsertLine,
+  animateEnter,
   onToggleHidden,
   onDelete,
   onRename,
 }: {
   project: Project
   showInsertLine: boolean
+  animateEnter?: boolean
   onToggleHidden: (id: string, isHidden: boolean) => void
   onDelete: (id: string) => void
   onRename: (id: string, name: string) => void
@@ -58,7 +60,13 @@ function SortableProjectRow({
         showInsertLine && 'before:absolute before:left-0 before:top-0 before:h-[2px] before:w-full before:bg-[#5A86EE]',
       )}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div
+        className={cn(
+          'flex w-full min-w-0 items-center justify-between gap-3',
+          animateEnter && 'project-row-enter',
+        )}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
           type="button"
           className="shrink-0 p-1.5 text-white/50 hover:text-white"
@@ -92,7 +100,7 @@ function SortableProjectRow({
             </button>
           )}
         </div>
-      </div>
+        </div>
 
       <div className="flex shrink-0 items-center gap-2">
         <button
@@ -135,6 +143,7 @@ function SortableProjectRow({
           />
         </button>
       </div>
+      </div>
     </div>
   )
 }
@@ -147,6 +156,7 @@ export function ProjectsPage() {
   const [newName, setNewName] = useState('')
   const [errorText, setErrorText] = useState<string | null>(null)
   const [isBusy, setIsBusy] = useState(false)
+  const [recentlyInsertedId, setRecentlyInsertedId] = useState<string | null>(null)
 
   useEffect(() => {
     setItems(projects.slice().sort((a, b) => a.order - b.order))
@@ -177,12 +187,32 @@ export function ProjectsPage() {
     setIsBusy(true)
     setErrorText(null)
     try {
-      const { error } = await supabase
+      const visibleNow = items.filter((p) => !p.is_hidden)
+      const newOrder =
+        visibleNow.length === 0 ? 0 : Math.min(...visibleNow.map((p) => p.order)) - 1
+
+      const { data, error } = await supabase
         .from('projects')
-        .insert({ name, is_hidden: false, order: Math.floor(Date.now() / 1000) })
+        .insert({ name, is_hidden: false, order: newOrder })
+        .select()
+        .single()
       if (error) throw error
       setNewName('')
-      await reloadProjects()
+      const insertedId = (data as Project | null)?.id ?? null
+      if (insertedId) setRecentlyInsertedId(insertedId)
+
+      const doc = document as Document & {
+        startViewTransition?: (cb: () => void | Promise<void>) => { finished: Promise<void> }
+      }
+      if (typeof doc.startViewTransition === 'function') {
+        await doc.startViewTransition(() => reloadProjects()).finished
+      } else {
+        await reloadProjects()
+      }
+
+      if (insertedId) {
+        window.setTimeout(() => setRecentlyInsertedId(null), 400)
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Ошибка добавления проекта'
       setErrorText(message)
@@ -351,12 +381,13 @@ export function ProjectsPage() {
           >
             <div className="space-y-6">
               <SortableContext items={visibleIds} strategy={verticalListSortingStrategy}>
-                <div className="space-y-0">
+                <div className="projects-visible-vt space-y-0">
                   {visibleItems.map((p) => (
                     <SortableProjectRow
                       key={p.id}
                       project={p}
                       showInsertLine={Boolean(activeId && overId === p.id && activeId !== p.id)}
+                      animateEnter={p.id === recentlyInsertedId}
                       onToggleHidden={onToggleHidden}
                       onDelete={onDelete}
                       onRename={onRename}
