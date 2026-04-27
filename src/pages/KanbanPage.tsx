@@ -270,7 +270,9 @@ export function KanbanPage() {
       .order('status', { ascending: true })
       .order('order', { ascending: true })
 
-    if (selectedEmployeeId) {
+    if (user?.role === 'employee' && user.id) {
+      q = q.eq('employee_id', user.id)
+    } else if (selectedEmployeeId) {
       q = q.eq('employee_id', selectedEmployeeId)
     }
 
@@ -310,7 +312,7 @@ export function KanbanPage() {
     return () => {
       mounted = false
     }
-  }, [reloadIndex, selectedEmployeeId, weekEnd, weekStart])
+  }, [reloadIndex, selectedEmployeeId, weekEnd, weekStart, user?.id, user?.role])
 
   function setWeekStartParam(d: Date) {
     setSearchParams((prev) => {

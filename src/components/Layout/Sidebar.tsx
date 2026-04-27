@@ -42,7 +42,7 @@ function SidebarNavItem({
 }
 
 export function Sidebar() {
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
   const { addToast } = useToast()
   const location = useLocation()
   const navigate = useNavigate()
@@ -182,24 +182,28 @@ export function Sidebar() {
             label="Теги"
             collapsed={sidebarCollapsed}
           />
-          <SidebarNavItem
-            to="/analytics"
-            iconSrc={analyticsUrl}
-            label="Аналитика"
-            collapsed={sidebarCollapsed}
-          />
+          {user?.role === 'admin' ? (
+            <SidebarNavItem
+              to="/analytics"
+              iconSrc={analyticsUrl}
+              label="Аналитика"
+              collapsed={sidebarCollapsed}
+            />
+          ) : null}
           <SidebarNavItem
             to="/projects"
             iconSrc={projectsUrl}
             label="Проекты"
             collapsed={sidebarCollapsed}
           />
-          <SidebarNavItem
-            to="/team"
-            iconSrc={teamUrl}
-            label="Команда"
-            collapsed={sidebarCollapsed}
-          />
+          {user?.role === 'admin' ? (
+            <SidebarNavItem
+              to="/team"
+              iconSrc={teamUrl}
+              label="Команда"
+              collapsed={sidebarCollapsed}
+            />
+          ) : null}
         </nav>
 
         <button
@@ -223,6 +227,17 @@ export function Sidebar() {
           <img src={exitUrl} alt="" className="h-[18px] w-[18px] shrink-0" />
           {!sidebarCollapsed ? <span className="truncate">Выйти</span> : null}
         </button>
+        {user?.login ? (
+          <div
+            className={cn(
+              'mt-1 truncate px-3 text-center text-xs text-white/40',
+              !sidebarCollapsed && 'text-left',
+            )}
+            title={user.login}
+          >
+            {user.login}
+          </div>
+        ) : null}
       </div>
     </aside>
   )

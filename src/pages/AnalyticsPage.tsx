@@ -149,6 +149,12 @@ export function AnalyticsPage() {
   const maxChartMinutes = chartData[0]?.totalMinutes ?? 1
 
   useEffect(() => {
+    if (user?.role === 'employee' && user.id) {
+      setFilterEmployeeId(user.id)
+    }
+  }, [user?.id, user?.role])
+
+  useEffect(() => {
     let mounted = true
     setIsLoading(true)
     setErrorText(null)
@@ -164,7 +170,7 @@ export function AnalyticsPage() {
 
     ;(async () => {
       try {
-        const { data, error } = await supabase
+        let q = supabase
           .from('tasks')
           .select(
             `
@@ -183,6 +189,10 @@ export function AnalyticsPage() {
           .gte('date', startDate)
           .lte('date', endDate)
           .order('date', { ascending: false })
+        if (user?.role === 'employee' && user.id) {
+          q = q.eq('employee_id', user.id)
+        }
+        const { data, error } = await q
 
         if (!mounted) return
         if (error) {
@@ -219,7 +229,7 @@ export function AnalyticsPage() {
     return () => {
       mounted = false
     }
-  }, [endDate, invalidRange, startDate])
+  }, [endDate, invalidRange, startDate, user?.id, user?.role])
 
   const projectOptions = useMemo(
     () => projects.filter((p) => !p.is_hidden),
@@ -316,25 +326,27 @@ export function AnalyticsPage() {
               ))}
             </select>
           </div>
-          <div className="block">
-            <div className="text-xs text-white/50">Сотрудник</div>
-            <select
-              value={filterEmployeeId ?? ''}
-              onChange={(e) => {
-              const v = e.target.value || null
-              setFilterEmployeeId(v)
-              if (preferencesLoaded && user?.id) void savePreferences(startDate, endDate, filterProjectId, v)
-            }}
-              className="mt-1 rounded-xl px-3 py-2 text-sm text-white outline-none bg-[#1a1a1a] min-w-[160px]"
-            >
-              <option value="">Все сотрудники</option>
-              {employeeOptions.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {user?.role === 'admin' ? (
+            <div className="block">
+              <div className="text-xs text-white/50">Сотрудник</div>
+              <select
+                value={filterEmployeeId ?? ''}
+                onChange={(e) => {
+                const v = e.target.value || null
+                setFilterEmployeeId(v)
+                if (preferencesLoaded && user?.id) void savePreferences(startDate, endDate, filterProjectId, v)
+              }}
+                className="mt-1 rounded-xl px-3 py-2 text-sm text-white outline-none bg-[#1a1a1a] min-w-[160px]"
+              >
+                <option value="">Все сотрудники</option>
+                {employeeOptions.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
         </div>
       </div>
 

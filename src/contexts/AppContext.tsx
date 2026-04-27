@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { supabase } from '../services/supabase'
 import type { Employee, Project } from '../types'
+import { useAuth } from './AuthContext'
 
 type AppContextValue = {
   employees: Employee[]
@@ -34,6 +35,7 @@ const LS_SIDEBAR_COLLAPSED = 'tt.sidebarCollapsed'
 const LS_SELECTED_EMPLOYEE_ID = 'tt.selectedEmployeeId'
 
 export function AppProvider({ children }: PropsWithChildren) {
+  const { user } = useAuth()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(true)
   const [employeesError, setEmployeesError] = useState<string | null>(null)
@@ -55,16 +57,20 @@ export function AppProvider({ children }: PropsWithChildren) {
   })
 
   const reloadEmployees = useCallback(async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('employees')
       .select('*')
       .order('order', { ascending: true })
       .order('created_at', { ascending: true })
+    if (user?.role === 'employee' && user.id) {
+      query = query.eq('id', user.id)
+    }
+    const { data, error } = await query
 
     if (error) throw error
     setEmployees((data ?? []) as Employee[])
     setEmployeesError(null)
-  }, [])
+  }, [user?.id, user?.role])
 
   const reloadProjects = useCallback(async () => {
     const { data, error } = await supabase
@@ -119,9 +125,22 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, [reloadProjects])
 
   const setSelectedEmployeeId = useCallback((id: string | null) => {
+    if (user?.role === 'employee') {
+      const selfId = user.id ?? null
+      setSelectedEmployeeIdState(selfId)
+      localStorage.setItem(LS_SELECTED_EMPLOYEE_ID, selfId ?? 'null')
+      return
+    }
     setSelectedEmployeeIdState(id)
     localStorage.setItem(LS_SELECTED_EMPLOYEE_ID, id ?? 'null')
-  }, [])
+  }, [user?.id, user?.role])
+
+  useEffect(() => {
+    if (user?.role !== 'employee') return
+    const selfId = user.id ?? null
+    setSelectedEmployeeIdState(selfId)
+    localStorage.setItem(LS_SELECTED_EMPLOYEE_ID, selfId ?? 'null')
+  }, [user?.id, user?.role])
 
   const setSidebarCollapsed = useCallback((collapsed: boolean) => {
     setSidebarCollapsedState(collapsed)

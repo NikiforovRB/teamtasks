@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
 export function RequireAuth() {
-  const { isLoading, session } = useAuth()
+  const { isLoading, session, user } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -17,6 +17,12 @@ export function RequireAuth() {
 
   if (!session) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  }
+  if (
+    user?.role === 'employee' &&
+    (location.pathname.startsWith('/team') || location.pathname.startsWith('/analytics'))
+  ) {
+    return <Navigate to="/" replace />
   }
 
   return <Outlet />

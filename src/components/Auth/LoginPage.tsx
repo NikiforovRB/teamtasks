@@ -7,14 +7,16 @@ export function LoginPage() {
   const { signInWithPassword } = useAuth()
   const navigate = useNavigate()
 
-  const [email, setEmail] = useState('')
+  const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errorText, setErrorText] = useState<string | null>(null)
+  const [errorText, setErrorText] = useState<string | null>(
+    () => localStorage.getItem('tt.auth.revoked'),
+  )
 
   const isValid = useMemo(
-    () => email.trim().length > 3 && password.length >= 6,
-    [email, password],
+    () => /^[a-z0-9]+$/.test(login.trim()) && password.length > 0,
+    [login, password],
   )
 
   async function onSubmit(e: React.FormEvent) {
@@ -23,7 +25,7 @@ export function LoginPage() {
     setIsSubmitting(true)
     setErrorText(null)
     try {
-      await signInWithPassword({ email: email.trim(), password })
+      await signInWithPassword({ login: login.trim(), password })
       navigate('/', { replace: true })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Ошибка входа'
@@ -41,14 +43,13 @@ export function LoginPage() {
 
           <form className="mt-6 w-full space-y-4" onSubmit={onSubmit}>
             <label className="block">
-              <div className="text-sm text-white/70">Email</div>
+              <div className="text-sm text-white/70">Логин</div>
               <input
                 className="mt-1 w-full rounded-xl px-3 py-2 text-white outline-none"
-                autoComplete="email"
-                inputMode="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@company.com"
+                autoComplete="username"
+                value={login}
+                onChange={(e) => setLogin(e.target.value.toLowerCase())}
+                placeholder="login"
               />
             </label>
 

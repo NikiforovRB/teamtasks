@@ -5,6 +5,9 @@ export type TaskStatus = 'planned' | 'completed'
 export type Employee = {
   id: Id
   name: string
+  login: string | null
+  password: string | null
+  role: 'admin' | 'employee'
   is_hidden: boolean
   order: number
   avatar_url?: string | null

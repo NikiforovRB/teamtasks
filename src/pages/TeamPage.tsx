@@ -35,6 +35,7 @@ function SortableEmployeeRow({
   onDelete,
   onRename,
   onAvatarChange,
+  onUpdateCredentials,
 }: {
   employee: Employee
   showInsertLine: boolean
@@ -42,14 +43,23 @@ function SortableEmployeeRow({
   onDelete: (id: string) => void
   onRename: (id: string, name: string) => void
   onAvatarChange: (id: string, file: File) => void
+  onUpdateCredentials: (id: string, input: { login: string; password: string; role: 'admin' | 'employee' }) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(employee.name)
+  const [editLogin, setEditLogin] = useState(employee.login ?? '')
+  const [editPassword, setEditPassword] = useState(employee.password ?? '')
+  const [editRole, setEditRole] = useState<'admin' | 'employee'>(employee.role ?? 'employee')
   const [eyeHover, setEyeHover] = useState(false)
   const [deleteHover, setDeleteHover] = useState(false)
   useEffect(() => {
     if (!editing) setEditName(employee.name)
   }, [employee.name, editing])
+  useEffect(() => {
+    setEditLogin(employee.login ?? '')
+    setEditPassword(employee.password ?? '')
+    setEditRole(employee.role ?? 'employee')
+  }, [employee.login, employee.password, employee.role])
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: employee.id })
 
@@ -129,6 +139,41 @@ function SortableEmployeeRow({
               {employee.name}
             </button>
           )}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            value={editLogin}
+            onChange={(e) => setEditLogin(e.target.value.toLowerCase())}
+            className="w-[140px] rounded-xl bg-[#1a1a1a] px-3 py-2 text-xs text-white outline-none"
+            placeholder="Логин"
+          />
+          <input
+            value={editPassword}
+            onChange={(e) => setEditPassword(e.target.value)}
+            className="w-[140px] rounded-xl bg-[#1a1a1a] px-3 py-2 text-xs text-white outline-none"
+            placeholder="Пароль"
+          />
+          <select
+            value={editRole}
+            onChange={(e) => setEditRole(e.target.value as 'admin' | 'employee')}
+            className="rounded-xl bg-[#1a1a1a] px-2 py-2 text-xs text-white outline-none"
+          >
+            <option value="employee">Сотрудник</option>
+            <option value="admin">Администратор</option>
+          </select>
+          <button
+            type="button"
+            onClick={() =>
+              onUpdateCredentials(employee.id, {
+                login: editLogin.trim(),
+                password: editPassword,
+                role: editRole,
+              })
+            }
+            className="rounded-xl bg-white/10 px-2 py-2 text-xs text-white hover:bg-white/15"
+          >
+            Сохранить
+          </button>
         </div>
       </div>
 
@@ -257,6 +302,39 @@ export function TeamPage() {
       await reloadEmployees()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Ошибка переименования'
+      setErrorText(message)
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  async function onUpdateCredentials(
+    id: string,
+    input: { login: string; password: string; role: 'admin' | 'employee' },
+  ) {
+    if (!/^[a-z0-9]+$/.test(input.login)) {
+      setErrorText('Логин: только латинские буквы и цифры')
+      return
+    }
+    if (!input.password.trim()) {
+      setErrorText('Пароль не может быть пустым')
+      return
+    }
+    setIsBusy(true)
+    setErrorText(null)
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          login: input.login,
+          password: input.password,
+          role: input.role,
+        })
+        .eq('id', id)
+      if (error) throw error
+      await reloadEmployees()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Ошибка сохранения учетных данных'
       setErrorText(message)
     } finally {
       setIsBusy(false)
@@ -426,6 +504,7 @@ export function TeamPage() {
                       onDelete={onDelete}
                       onRename={onRename}
                       onAvatarChange={onAvatarChange}
+                      onUpdateCredentials={onUpdateCredentials}
                     />
                   ))}
                 </div>
@@ -445,6 +524,7 @@ export function TeamPage() {
                           onDelete={onDelete}
                           onRename={onRename}
                           onAvatarChange={onAvatarChange}
+                          onUpdateCredentials={onUpdateCredentials}
                         />
                       ))}
                     </div>
